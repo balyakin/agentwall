@@ -81,7 +81,7 @@ func New(opts Options) (*Server, error) {
 	p.Verbose = false
 	mitmConnect := &goproxy.ConnectAction{Action: goproxy.ConnectMitm, TLSConfig: goproxy.TLSConfigFromCA(&opts.CACert)}
 	p.Tr = &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
+		Proxy: nil,
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
 			KeepAlive: 30 * time.Second,

@@ -162,6 +162,53 @@ func TestProxySanitizesRequestBody(t *testing.T) {
 	}
 }
 
+func TestTransportDoesNotUseParentProxyEnvByDefault(t *testing.T) {
+	manager := ca.New(t.TempDir())
+	if err := manager.Ensure(); err != nil {
+		t.Fatal(err)
+	}
+	cert, err := manager.TLSCertificate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := New(Options{Mode: "balanced", CACert: cert})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if server.proxy == nil || server.proxy.Tr == nil {
+		t.Fatalf("expected proxy transport to be initialized")
+	}
+	if server.proxy.Tr.Proxy != nil {
+		t.Fatalf("expected no inherited parent proxy in transport")
+	}
+}
+
+func TestTransportUsesConfiguredUpstreamProxy(t *testing.T) {
+	manager := ca.New(t.TempDir())
+	if err := manager.Ensure(); err != nil {
+		t.Fatal(err)
+	}
+	cert, err := manager.TLSCertificate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := New(Options{Mode: "balanced", CACert: cert, UpstreamProxy: "http://127.0.0.1:19001"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if server.proxy == nil || server.proxy.Tr == nil || server.proxy.Tr.Proxy == nil {
+		t.Fatalf("expected configured upstream proxy function")
+	}
+	req, _ := http.NewRequest(http.MethodGet, "https://api.openai.com/v1/models", nil)
+	proxyURL, err := server.proxy.Tr.Proxy(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if proxyURL == nil || proxyURL.String() != "http://127.0.0.1:19001" {
+		t.Fatalf("unexpected upstream proxy URL: %v", proxyURL)
+	}
+}
+
 func TestBudgetTrackingReadCloserSSE(t *testing.T) {
 	controller := budget.New(10, "block")
 	costEvents := make(chan ui.Event, 1)
