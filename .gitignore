@@ -1,0 +1,9 @@
+.DS_Store
+.idea/
+dist/
+bin/
+coverage.out
+*.log
+*.test
+*.prof
+session.jsonl

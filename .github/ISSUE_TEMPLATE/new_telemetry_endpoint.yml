@@ -1,0 +1,19 @@
+name: New telemetry endpoint
+description: Report telemetry endpoint that should be blocked by default
+title: "telemetry: "
+labels: [telemetry, good first issue]
+body:
+  - type: input
+    id: endpoint
+    attributes:
+      label: Host / domain pattern
+      placeholder: telemetry.example.com or *.example.com
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Include logs, packet capture snippet, or documentation link.
+    validations:
+      required: true

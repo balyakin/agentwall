@@ -1,0 +1,10 @@
+version: 1
+mode: strict
+port: 8723
+sanitizers:
+  enabled: true
+response_sanitize:
+  mode: block
+budget:
+  usd: 10
+  on_exceed: block

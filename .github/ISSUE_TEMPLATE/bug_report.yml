@@ -1,0 +1,17 @@
+name: Bug report
+description: Report a reproducible AgentWall bug
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include command, mode, and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Paste sanitized `agentwall log tail` snippets.

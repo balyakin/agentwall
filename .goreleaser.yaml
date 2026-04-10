@@ -1,0 +1,33 @@
+project_name: agentwall
+
+before:
+  hooks:
+    - go test ./...
+
+builds:
+  - id: agentwall
+    main: ./cmd/agentwall
+    binary: agentwall
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/balyakin/agentwall/internal/version.Version={{.Version}}
+      - -X github.com/balyakin/agentwall/internal/version.Commit={{.Commit}}
+      - -X github.com/balyakin/agentwall/internal/version.BuildDate={{.Date}}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  use: github

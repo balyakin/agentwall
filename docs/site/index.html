@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AgentWall</title>
+  <style>
+    :root { --bg:#0b1020; --fg:#e6edf3; --accent:#4fd1c5; --muted:#8b9bb4; }
+    body { margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: radial-gradient(1000px 500px at 10% -10%, #1f2a44, var(--bg)); color:var(--fg); }
+    main { max-width:900px; margin:0 auto; padding:72px 20px; }
+    h1 { font-size:44px; margin:0 0 12px; }
+    p { color:var(--muted); line-height:1.6; }
+    .cmd { background:#11182d; padding:14px 16px; border:1px solid #2a3b5f; border-radius:10px; margin:20px 0; }
+    a.btn { display:inline-block; padding:10px 14px; border-radius:8px; color:#001; background:var(--accent); text-decoration:none; font-weight:700; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>AgentWall</h1>
+    <p>A zero-config network firewall for AI coding agents.</p>
+    <div class="cmd">curl -fsSL https://agentwall.dev/install.sh | sh</div>
+    <p><a class="btn" href="https://github.com/balyakin">GitHub</a></p>
+  </main>
+</body>
+</html>
