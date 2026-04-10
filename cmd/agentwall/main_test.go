@@ -87,16 +87,16 @@ func TestPassthroughHostsForCommand(t *testing.T) {
 }
 
 func TestEffectiveCodexPassthrough(t *testing.T) {
-	if !effectiveCodexPassthrough(nil) {
-		t.Fatalf("expected nil flags to default to passthrough enabled")
+	if effectiveCodexPassthrough(nil) {
+		t.Fatalf("expected nil flags to default to passthrough disabled")
+	}
+	if effectiveCodexPassthrough(&cliFlags{codexPassthrough: false}) {
+		t.Fatalf("expected passthrough disabled when flag is false")
 	}
 	if !effectiveCodexPassthrough(&cliFlags{codexPassthrough: true}) {
 		t.Fatalf("expected passthrough enabled when flag is true")
 	}
 	if effectiveCodexPassthrough(&cliFlags{codexPassthrough: true, noCodexPassthrough: true}) {
 		t.Fatalf("expected no-codex-passthrough to override")
-	}
-	if effectiveCodexPassthrough(&cliFlags{codexPassthrough: false}) {
-		t.Fatalf("expected explicit codex-passthrough=false to disable")
 	}
 }

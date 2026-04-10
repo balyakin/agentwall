@@ -85,7 +85,7 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().StringVar(&flags.upstreamProxy, "upstream-proxy", "", "optional upstream proxy URL")
 	root.PersistentFlags().StringVar(&flags.budget, "budget", "", "session budget (e.g. 5$, USD:5)")
 	root.PersistentFlags().StringVar(&flags.responseSanitize, "response-sanitize", "", "off|detect|sanitize|block")
-	root.PersistentFlags().BoolVar(&flags.codexPassthrough, "codex-passthrough", true, "compatibility mode for codex: passthrough chatgpt.com (disables body-level protection)")
+	root.PersistentFlags().BoolVar(&flags.codexPassthrough, "codex-passthrough", false, "compatibility mode for codex: passthrough chatgpt.com (disables body-level protection)")
 	root.PersistentFlags().BoolVar(&flags.noCodexPassthrough, "no-codex-passthrough", false, "disable codex passthrough and force body inspection (may be slower/unstable)")
 	root.PersistentFlags().BoolVar(&flags.failOnBlocked, "fail-on-blocked", false, "non-zero exit if anything was blocked")
 	root.PersistentFlags().StringVar(&flags.saveSession, "save-session", "", "save normalized session trace")
@@ -768,7 +768,7 @@ func likelyInteractiveCommand(command string) bool {
 
 func effectiveCodexPassthrough(flags *cliFlags) bool {
 	if flags == nil {
-		return true
+		return false
 	}
 	if flags.noCodexPassthrough {
 		return false
