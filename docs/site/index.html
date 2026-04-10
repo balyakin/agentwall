@@ -5,21 +5,146 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AgentWall</title>
   <style>
-    :root { --bg:#0b1020; --fg:#e6edf3; --accent:#4fd1c5; --muted:#8b9bb4; }
-    body { margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: radial-gradient(1000px 500px at 10% -10%, #1f2a44, var(--bg)); color:var(--fg); }
-    main { max-width:900px; margin:0 auto; padding:72px 20px; }
-    h1 { font-size:44px; margin:0 0 12px; }
-    p { color:var(--muted); line-height:1.6; }
-    .cmd { background:#11182d; padding:14px 16px; border:1px solid #2a3b5f; border-radius:10px; margin:20px 0; }
-    a.btn { display:inline-block; padding:10px 14px; border-radius:8px; color:#001; background:var(--accent); text-decoration:none; font-weight:700; }
+    :root {
+      --bg: #0d0f0c;
+      --fg: #f4f6ef;
+      --muted: #a9b1a2;
+      --line: #30362e;
+      --panel: #151914;
+      --accent: #58e39a;
+      --accent-strong: #11170f;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(100%, 980px);
+      margin: 0 auto;
+      padding: 64px 20px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 56px;
+      font-weight: 800;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent);
+      color: var(--accent-strong);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 17px;
+      line-height: 1;
+    }
+
+    .brand-name {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    h1 {
+      max-width: 780px;
+      margin: 0 0 18px;
+      font-size: 56px;
+      line-height: 1.04;
+    }
+
+    p {
+      max-width: 680px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    .cmd {
+      max-width: 620px;
+      margin: 28px 0;
+      padding: 14px 16px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--fg);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 15px;
+      line-height: 1.5;
+      white-space: nowrap;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: var(--accent-strong);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    a.secondary {
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--fg);
+    }
+
+    @media (max-width: 640px) {
+      main {
+        padding: 40px 18px;
+      }
+
+      .brand {
+        margin-bottom: 42px;
+      }
+
+      h1 {
+        font-size: 38px;
+      }
+
+      p {
+        font-size: 16px;
+      }
+    }
   </style>
 </head>
 <body>
   <main>
-    <h1>AgentWall</h1>
-    <p>A zero-config network firewall for AI coding agents.</p>
-    <div class="cmd">curl -fsSL https://agentwall.dev/install.sh | sh</div>
-    <p><a class="btn" href="https://github.com/balyakin">GitHub</a></p>
+    <div class="brand" aria-label="AgentWall">
+      <span class="brand-mark">AW</span>
+      <span class="brand-name">AgentWall</span>
+    </div>
+    <h1>Network firewall for coding agents.</h1>
+    <p>Run Codex, Claude Code, Aider, OpenCode and friends through a local proxy with policy checks, secret redaction and audit logs.</p>
+    <div class="cmd">curl -fsSL https://raw.githubusercontent.com/balyakin/agentwall/main/scripts/install.sh | sh</div>
+    <div class="actions">
+      <a class="btn" href="https://github.com/balyakin/agentwall">GitHub</a>
+      <a class="btn secondary" href="../architecture.md">Architecture</a>
+    </div>
   </main>
 </body>
 </html>

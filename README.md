@@ -1,13 +1,6 @@
-#
-#    _                    _ __        __    _ _
-#   / \   __ _  ___ _ __ | |_\ \      / /_ _| | |
-#  / _ \ / _` |/ _ \ '_ \| __|\ \ /\ / / _` | | |
-# / ___ \ (_| |  __/ | | | |_  \ V  V / (_| | | |
-#/_/   \_\__, |\___|_| |_|\__|  \_/\_/ \__,_|_|_|
-#        |___/
-#
+# AgentWall
 
-**AgentWall — A zero-config network firewall for AI coding agents. See exactly where Claude Code, Aider, OpenCode and friends try to send your data — and stop them when they shouldn't.**
+**A zero-config network firewall for AI coding agents. See exactly where Claude Code, Aider, OpenCode and friends try to send your data, and stop them when they shouldn't.**
 
 ![Demo GIF placeholder](docs/assets/demo.gif "15-second terminal demo: run claude behind agentwall, telemetry blocked, secret redacted, summary shown")
 
