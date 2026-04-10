@@ -8,7 +8,7 @@ import (
 
 func TestLoadMergesGlobalAndProjectAndEnv(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	appDir := filepath.Join(home, ".agentwall")
 	if err := os.MkdirAll(appDir, 0o700); err != nil {
 		t.Fatal(err)
@@ -62,7 +62,7 @@ func TestFindProjectConfig(t *testing.T) {
 
 func TestLoadKeepsDefaultBoolWhenNotSpecified(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	appDir := filepath.Join(home, ".agentwall")
 	if err := os.MkdirAll(appDir, 0o700); err != nil {
 		t.Fatal(err)
@@ -95,7 +95,7 @@ func TestLoadKeepsDefaultBoolWhenNotSpecified(t *testing.T) {
 
 func TestLoadAppliesExplicitFalseBoolOverride(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	appDir := filepath.Join(home, ".agentwall")
 	if err := os.MkdirAll(appDir, 0o700); err != nil {
 		t.Fatal(err)
@@ -126,7 +126,7 @@ func TestLoadAppliesExplicitFalseBoolOverride(t *testing.T) {
 
 func TestLoadExpandsUserPath(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	setTestHome(t, home)
 	appDir := filepath.Join(home, ".agentwall")
 	if err := os.MkdirAll(appDir, 0o700); err != nil {
 		t.Fatal(err)
@@ -150,4 +150,12 @@ func TestLoadExpandsUserPath(t *testing.T) {
 	if cfg.Log.Path != want {
 		t.Fatalf("expected expanded path %s, got %s", want, cfg.Log.Path)
 	}
+}
+
+func setTestHome(t *testing.T, home string) {
+	t.Helper()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("HOMEDRIVE", "")
+	t.Setenv("HOMEPATH", home)
 }
