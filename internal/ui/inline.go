@@ -54,15 +54,22 @@ type HostCounter struct {
 }
 
 type Inline struct {
-	out     io.Writer
-	noColor bool
-	jsonOut bool
-	quiet   bool
-	mu      sync.Mutex
+	out         io.Writer
+	noColor     bool
+	jsonOut     bool
+	quiet       bool
+	eventsMuted bool
+	mu          sync.Mutex
 }
 
 func NewInline(out io.Writer, noColor, jsonOut, quiet bool) *Inline {
 	return &Inline{out: out, noColor: noColor, jsonOut: jsonOut, quiet: quiet}
+}
+
+func (w *Inline) SetEventsMuted(muted bool) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.eventsMuted = muted
 }
 
 func (w *Inline) Banner(version, mode, proxyAddr, child string) {
@@ -85,7 +92,10 @@ func (w *Inline) Banner(version, mode, proxyAddr, child string) {
 }
 
 func (w *Inline) Print(e Event) {
-	if w.quiet {
+	w.mu.Lock()
+	eventsMuted := w.eventsMuted
+	w.mu.Unlock()
+	if w.quiet || eventsMuted {
 		return
 	}
 	if e.TS.IsZero() {

@@ -57,3 +57,15 @@ func TestApplyFlagOverridesInvalidResponseModeFallsBack(t *testing.T) {
 		t.Fatalf("expected strict fallback mode 'block', got %s", cfg.ResponseSanitize.Mode)
 	}
 }
+
+func TestLikelyInteractiveCommand(t *testing.T) {
+	if !likelyInteractiveCommand("codex") {
+		t.Fatalf("expected codex to be treated as interactive")
+	}
+	if !likelyInteractiveCommand("/usr/local/bin/claude") {
+		t.Fatalf("expected claude to be treated as interactive")
+	}
+	if likelyInteractiveCommand("go") {
+		t.Fatalf("did not expect go to be treated as interactive")
+	}
+}

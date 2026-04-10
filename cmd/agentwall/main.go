@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"sort"
 	"strings"
 	"syscall"
@@ -198,11 +199,18 @@ func runAgentWall(flags *cliFlags, childCmd []string) error {
 		return err
 	}
 
+	liveEventsMuted := shouldMuteLiveEvents(flags, childCmd)
 	inline := ui.NewInline(os.Stderr, flags.noColor, flags.json, flags.quiet)
+	if liveEventsMuted {
+		inline.SetEventsMuted(true)
+	}
 	if flags.split {
 		_, _ = fmt.Fprintln(os.Stderr, "INFO: --split is not available in this build; falling back to inline mode.")
 	}
 	inline.Banner(version.String(), cfg.Mode, fmt.Sprintf("127.0.0.1:%d", cfg.Port), strings.Join(childCmd, " "))
+	if liveEventsMuted && !flags.quiet {
+		_, _ = fmt.Fprintln(os.Stderr, "  ▸ live events muted for interactive TUI; details are in summary/log")
+	}
 
 	var recorder *replay.Recorder
 	if cfg.SaveSession != "" {
@@ -712,4 +720,39 @@ func toHostCounters(m map[string]int) []ui.HostCounter {
 		out = out[:10]
 	}
 	return out
+}
+
+func shouldMuteLiveEvents(flags *cliFlags, childCmd []string) bool {
+	if flags == nil || flags.quiet || flags.json {
+		return false
+	}
+	if len(childCmd) == 0 || !stdioLooksInteractive() {
+		return false
+	}
+	return likelyInteractiveCommand(childCmd[0])
+}
+
+func stdioLooksInteractive() bool {
+	return isCharDevice(os.Stdin) && isCharDevice(os.Stdout) && isCharDevice(os.Stderr)
+}
+
+func isCharDevice(f *os.File) bool {
+	if f == nil {
+		return false
+	}
+	fi, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return fi.Mode()&os.ModeCharDevice != 0
+}
+
+func likelyInteractiveCommand(command string) bool {
+	base := strings.ToLower(filepath.Base(strings.TrimSpace(command)))
+	switch base {
+	case "codex", "claude", "opencode", "aider", "gemini", "continue":
+		return true
+	default:
+		return false
+	}
 }

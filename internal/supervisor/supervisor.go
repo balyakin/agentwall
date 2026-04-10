@@ -36,7 +36,6 @@ func (r *Runner) BuildEnv(base []string) []string {
 	env["HTTPS_PROXY"] = proxyURL
 	env["http_proxy"] = proxyURL
 	env["https_proxy"] = proxyURL
-	env["ALL_PROXY"] = proxyURL
 	env["NODE_EXTRA_CA_CERTS"] = r.CAPath
 	env["SSL_CERT_FILE"] = r.CAPath
 	env["REQUESTS_CA_BUNDLE"] = r.CAPath

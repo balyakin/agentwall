@@ -24,3 +24,18 @@ func TestInlinePrintAndSummary(t *testing.T) {
 		t.Fatalf("expected summary output")
 	}
 }
+
+func TestInlineMutedEventsStillShowsSummary(t *testing.T) {
+	buf := &bytes.Buffer{}
+	w := NewInline(buf, true, false, false)
+	w.SetEventsMuted(true)
+	w.Print(Event{TS: time.Unix(0, 0).UTC(), Action: "allow", Method: "GET", Host: "api.openai.com", Path: "/v1/models"})
+	w.PrintSummary(Summary{Duration: time.Second, Requests: 1, Allowed: 1}, "~/.agentwall/log.jsonl")
+	text := buf.String()
+	if strings.Contains(text, "ALLOW") {
+		t.Fatalf("expected events to be muted")
+	}
+	if !strings.Contains(text, "summary") {
+		t.Fatalf("expected summary output")
+	}
+}
