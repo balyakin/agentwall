@@ -775,9 +775,27 @@ func (l *tlsPinningLogger) Printf(format string, argv ...any) {
 	if host := extractPinnedHost(msg); host != "" && l.onPinned != nil {
 		l.onPinned(host)
 	}
+	if shouldSuppressProxyWarn(msg) {
+		return
+	}
 	if l.base != nil {
 		l.base.Printf(format, argv...)
 	}
+}
+
+func shouldSuppressProxyWarn(msg string) bool {
+	if msg == "" {
+		return false
+	}
+	lower := strings.ToLower(msg)
+	if strings.Contains(lower, "error copying to client") {
+		if strings.Contains(lower, "connection reset by peer") ||
+			strings.Contains(lower, "broken pipe") ||
+			strings.Contains(lower, "use of closed network connection") {
+			return true
+		}
+	}
+	return false
 }
 
 func extractPinnedHost(msg string) string {

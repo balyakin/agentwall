@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -26,6 +27,12 @@ import (
 type staticReadCloser struct{ io.Reader }
 
 func (s staticReadCloser) Close() error { return nil }
+
+type captureLogger struct{ lines []string }
+
+func (c *captureLogger) Printf(format string, args ...any) {
+	c.lines = append(c.lines, fmt.Sprintf(format, args...))
+}
 
 func TestProxyBlocksTelemetryHost(t *testing.T) {
 	eng, err := rules.New("balanced", nil)
@@ -396,6 +403,41 @@ func TestPinnedHostExtractionAndCache(t *testing.T) {
 	s.markPinnedHost("api.some-pinned-host.com:443")
 	if !s.isPinnedHost("api.some-pinned-host.com") {
 		t.Fatalf("expected host to be marked as pinned")
+	}
+}
+
+func TestShouldSuppressProxyWarn(t *testing.T) {
+	if !shouldSuppressProxyWarn("WARN: Error copying to client: read: connection reset by peer") {
+		t.Fatalf("expected benign reset warning to be suppressed")
+	}
+	if !shouldSuppressProxyWarn("WARN: Error copying to client: write tcp: broken pipe") {
+		t.Fatalf("expected benign broken pipe warning to be suppressed")
+	}
+	if shouldSuppressProxyWarn("WARN: Cannot handshake client api.example.com:443 remote error: tls: bad certificate") {
+		t.Fatalf("did not expect handshake warning to be suppressed")
+	}
+}
+
+func TestTLSPinningLoggerSuppressesBenignWarnings(t *testing.T) {
+	base := &captureLogger{}
+	logger := &tlsPinningLogger{base: base}
+	logger.Printf("%s", "[001] WARN: Error copying to client: writeto tcp: connection reset by peer")
+	if len(base.lines) != 0 {
+		t.Fatalf("expected benign warning to be suppressed")
+	}
+}
+
+func TestTLSPinningLoggerForwardsHandshakeWarningsAndMarksPinned(t *testing.T) {
+	base := &captureLogger{}
+	marked := ""
+	logger := &tlsPinningLogger{base: base, onPinned: func(host string) { marked = host }}
+	msg := "[001] WARN: Cannot handshake client api.some-pinned-host.com:443 remote error: tls: bad certificate"
+	logger.Printf("%s", msg)
+	if marked != "api.some-pinned-host.com" {
+		t.Fatalf("expected pinned host callback, got %q", marked)
+	}
+	if len(base.lines) != 1 {
+		t.Fatalf("expected handshake warning to be forwarded")
 	}
 }
 
