@@ -238,19 +238,20 @@ func runAgentWall(flags *cliFlags, childCmd []string) error {
 	defer cancel()
 
 	proxyServer, err := proxy.New(proxy.Options{
-		Addr:          fmt.Sprintf("127.0.0.1:%d", cfg.Port),
-		Mode:          cfg.Mode,
-		UpstreamProxy: cfg.UpstreamProxy,
-		CACert:        caCert,
-		Engine:        engine,
-		Sanitizer:     sanitizer,
-		Guard:         guard,
-		Budget:        budgetController,
-		UI:            inline,
-		Log:           logWriter,
-		Recorder:      recorder,
-		Replayer:      replayer,
-		Explainer:     explainer,
+		Addr:             fmt.Sprintf("127.0.0.1:%d", cfg.Port),
+		Mode:             cfg.Mode,
+		UpstreamProxy:    cfg.UpstreamProxy,
+		PassthroughHosts: passthroughHostsForCommand(childCmd),
+		CACert:           caCert,
+		Engine:           engine,
+		Sanitizer:        sanitizer,
+		Guard:            guard,
+		Budget:           budgetController,
+		UI:               inline,
+		Log:              logWriter,
+		Recorder:         recorder,
+		Replayer:         replayer,
+		Explainer:        explainer,
 	})
 	if err != nil {
 		return err
@@ -755,4 +756,15 @@ func likelyInteractiveCommand(command string) bool {
 	default:
 		return false
 	}
+}
+
+func passthroughHostsForCommand(childCmd []string) []string {
+	if len(childCmd) == 0 {
+		return nil
+	}
+	base := strings.ToLower(filepath.Base(strings.TrimSpace(childCmd[0])))
+	if base == "codex" {
+		return []string{"chatgpt.com", ".chatgpt.com"}
+	}
+	return nil
 }

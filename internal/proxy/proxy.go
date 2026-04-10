@@ -26,19 +26,20 @@ import (
 )
 
 type Options struct {
-	Addr          string
-	Mode          string
-	UpstreamProxy string
-	CACert        tls.Certificate
-	Engine        *rules.Engine
-	Sanitizer     *sanitize.Sanitizer
-	Guard         *response.Guard
-	Budget        *budget.Controller
-	UI            *ui.Inline
-	Log           *auditlog.Writer
-	Recorder      *replay.Recorder
-	Replayer      *replay.Player
-	Explainer     *ui.Explainer
+	Addr             string
+	Mode             string
+	UpstreamProxy    string
+	PassthroughHosts []string
+	CACert           tls.Certificate
+	Engine           *rules.Engine
+	Sanitizer        *sanitize.Sanitizer
+	Guard            *response.Guard
+	Budget           *budget.Controller
+	UI               *ui.Inline
+	Log              *auditlog.Writer
+	Recorder         *replay.Recorder
+	Replayer         *replay.Player
+	Explainer        *ui.Explainer
 }
 
 type Stats struct {
@@ -141,6 +142,19 @@ func (s *Server) setupHandlers() {
 			})
 			return goproxy.RejectConnect, host
 		}
+		if hostMatchesPassthrough(hostOnly, s.opts.PassthroughHosts) {
+			s.emit(ui.Event{
+				Action:   "pass",
+				Method:   "CONNECT",
+				Host:     host,
+				TLSMode:  "host_passthrough",
+				Mode:     s.opts.Mode,
+				Reason:   "configured host passthrough (no body sanitize)",
+				BytesIn:  0,
+				BytesOut: 0,
+			})
+			return goproxy.OkConnect, host
+		}
 		if s.isPinnedHost(hostOnly) {
 			s.emit(ui.Event{
 				Action:   "pass",
@@ -162,12 +176,17 @@ func (s *Server) setupHandlers() {
 			return req, nil
 		}
 
-		needFullBodyForKey := s.opts.Replayer != nil || s.opts.Recorder != nil
-		reqBody, err := s.captureRequestBody(req, needFullBodyForKey)
-		if err != nil {
-			s.emit(ui.Event{Action: "error", Method: req.Method, Host: req.URL.Hostname(), Path: req.URL.Path, Reason: err.Error()})
-			s.statsIncError()
-			return req, blockedResponse(req, "request.read_error")
+		skipBodyInspection := shouldBypassRequestBodyInspection(req)
+		reqBody := []byte(nil)
+		if !skipBodyInspection {
+			needFullBodyForKey := s.opts.Replayer != nil || s.opts.Recorder != nil
+			captured, err := s.captureRequestBody(req, needFullBodyForKey)
+			if err != nil {
+				s.emit(ui.Event{Action: "error", Method: req.Method, Host: req.URL.Hostname(), Path: req.URL.Path, Reason: err.Error()})
+				s.statsIncError()
+				return req, blockedResponse(req, "request.read_error")
+			}
+			reqBody = captured
 		}
 		ctx.UserData = append([]byte(nil), reqBody...)
 
@@ -252,7 +271,7 @@ func (s *Server) setupHandlers() {
 		}
 
 		sanitizeRes := sanitize.Result{}
-		if s.opts.Sanitizer != nil && s.opts.Sanitizer.Enabled() {
+		if s.opts.Sanitizer != nil && s.opts.Sanitizer.Enabled() && !skipBodyInspection {
 			res, err := s.opts.Sanitizer.SanitizeRequest(req)
 			if err != nil {
 				s.emit(ui.Event{Action: "error", Method: req.Method, Host: req.URL.Hostname(), Path: req.URL.Path, Reason: err.Error()})
@@ -291,6 +310,9 @@ func (s *Server) setupHandlers() {
 		}
 		if sanitizeRes.SkippedBinary {
 			e.Reason = "sanitize_skipped_binary"
+		}
+		if skipBodyInspection {
+			e.Reason = "body_inspection_skipped_streaming"
 		}
 		s.emit(e)
 		return req, nil
@@ -605,6 +627,23 @@ func requestBodyFromCtx(ctx *goproxy.ProxyCtx) []byte {
 	return append([]byte(nil), body...)
 }
 
+func shouldBypassRequestBodyInspection(req *http.Request) bool {
+	if req == nil || req.Body == nil {
+		return true
+	}
+	if strings.EqualFold(strings.TrimSpace(req.Header.Get("Upgrade")), "websocket") {
+		return true
+	}
+	contentType := strings.ToLower(strings.TrimSpace(req.Header.Get("Content-Type")))
+	if strings.Contains(contentType, "text/event-stream") {
+		return true
+	}
+	if req.ContentLength < 0 {
+		return true
+	}
+	return false
+}
+
 func (s *Server) requestBodyPreviewLimit() int {
 	if s.opts.Sanitizer != nil {
 		return s.opts.Sanitizer.MaxBodyBytes()
@@ -698,6 +737,32 @@ func connectHostOnly(host string) string {
 	}
 	host = strings.Trim(host, "[]")
 	return strings.ToLower(host)
+}
+
+func hostMatchesPassthrough(host string, patterns []string) bool {
+	host = connectHostOnly(host)
+	if host == "" {
+		return false
+	}
+	for _, raw := range patterns {
+		pattern := connectHostOnly(raw)
+		if pattern == "" {
+			continue
+		}
+		if host == pattern {
+			return true
+		}
+		if strings.HasPrefix(pattern, ".") {
+			if strings.HasSuffix(host, pattern) {
+				return true
+			}
+			continue
+		}
+		if strings.HasSuffix(host, "."+pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 type tlsPinningLogger struct {

@@ -23,6 +23,10 @@ import (
 	"github.com/balyakin/agentwall/internal/ui"
 )
 
+type staticReadCloser struct{ io.Reader }
+
+func (s staticReadCloser) Close() error { return nil }
+
 func TestProxyBlocksTelemetryHost(t *testing.T) {
 	eng, err := rules.New("balanced", nil)
 	if err != nil {
@@ -206,6 +210,58 @@ func TestTransportUsesConfiguredUpstreamProxy(t *testing.T) {
 	}
 	if proxyURL == nil || proxyURL.String() != "http://127.0.0.1:19001" {
 		t.Fatalf("unexpected upstream proxy URL: %v", proxyURL)
+	}
+}
+
+func TestShouldBypassRequestBodyInspection(t *testing.T) {
+	t.Run("known-size json body", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodPost, "https://chatgpt.com/backend-api/codex/responses", strings.NewReader(`{"message":"hi"}`))
+		req.Header.Set("Content-Type", "application/json")
+		if shouldBypassRequestBodyInspection(req) {
+			t.Fatalf("expected known-size JSON request to be inspected")
+		}
+	})
+
+	t.Run("streaming unknown content length", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodPost, "https://chatgpt.com/backend-api/codex/responses", nil)
+		req.Body = staticReadCloser{Reader: strings.NewReader("chunk")}
+		req.ContentLength = -1
+		req.Header.Set("Content-Type", "application/json")
+		if !shouldBypassRequestBodyInspection(req) {
+			t.Fatalf("expected streaming request body inspection to be bypassed")
+		}
+	})
+
+	t.Run("event stream content type", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodPost, "https://chatgpt.com/backend-api/codex/responses", nil)
+		req.Body = staticReadCloser{Reader: strings.NewReader("data: ping\n\n")}
+		req.ContentLength = -1
+		req.Header.Set("Content-Type", "text/event-stream")
+		if !shouldBypassRequestBodyInspection(req) {
+			t.Fatalf("expected event-stream request body inspection to be bypassed")
+		}
+	})
+
+	t.Run("websocket upgrade", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "https://chatgpt.com/socket", nil)
+		req.Body = staticReadCloser{Reader: strings.NewReader("")}
+		req.Header.Set("Upgrade", "websocket")
+		if !shouldBypassRequestBodyInspection(req) {
+			t.Fatalf("expected websocket upgrade body inspection to be bypassed")
+		}
+	})
+}
+
+func TestHostMatchesPassthrough(t *testing.T) {
+	patterns := []string{"chatgpt.com", ".chatgpt.com"}
+	if !hostMatchesPassthrough("chatgpt.com", patterns) {
+		t.Fatalf("expected exact match")
+	}
+	if !hostMatchesPassthrough("ab.chatgpt.com", patterns) {
+		t.Fatalf("expected subdomain match")
+	}
+	if hostMatchesPassthrough("api.openai.com", patterns) {
+		t.Fatalf("did not expect unrelated host match")
 	}
 }
 

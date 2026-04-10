@@ -69,3 +69,16 @@ func TestLikelyInteractiveCommand(t *testing.T) {
 		t.Fatalf("did not expect go to be treated as interactive")
 	}
 }
+
+func TestPassthroughHostsForCommand(t *testing.T) {
+	hosts := passthroughHostsForCommand([]string{"codex"})
+	if len(hosts) == 0 {
+		t.Fatalf("expected codex passthrough hosts")
+	}
+	if got, want := hosts[0], "chatgpt.com"; got != want {
+		t.Fatalf("unexpected first passthrough host: got %s want %s", got, want)
+	}
+	if hosts := passthroughHostsForCommand([]string{"claude"}); len(hosts) != 0 {
+		t.Fatalf("expected no passthrough hosts for claude")
+	}
+}
