@@ -3,6 +3,7 @@ set -eu
 
 REPO="${AGENTWALL_REPO:-balyakin/agentwall}"
 REF="${AGENTWALL_REF:-main}"
+MODULE="${AGENTWALL_MODULE:-github.com/balyakin/agentwall}"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"
@@ -38,14 +39,35 @@ if [ -w "/usr/local/bin" ]; then
 fi
 mkdir -p "$target_dir"
 
+tmpdir="$(mktemp -d)"
+trap 'rm -rf "$tmpdir"' EXIT
+
 install_from_source() {
   if ! command -v go >/dev/null 2>&1; then
     echo "No GitHub release found for $REPO and Go is not installed." >&2
-    echo "Install Go, then run: go install github.com/$REPO/cmd/agentwall@$REF" >&2
+    echo "Install Go, then rerun this installer or download a release binary." >&2
     exit 1
   fi
-  echo "No GitHub release found for $REPO. Building from source with Go..." >&2
-  GOBIN="$target_dir" go install "github.com/$REPO/cmd/agentwall@$REF"
+  echo "No GitHub release found for $REPO. Building $REF from source with Go..." >&2
+  curl -fsSL "https://github.com/$REPO/archive/$REF.tar.gz" -o "$tmpdir/source.tar.gz"
+  tar -xzf "$tmpdir/source.tar.gz" -C "$tmpdir"
+  srcdir="$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+  if [ -z "$srcdir" ]; then
+    echo "Failed to unpack source archive" >&2
+    exit 1
+  fi
+  build_date="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  ldflags="-s -w"
+  ldflags="$ldflags -X $MODULE/internal/version.Version=dev-$REF"
+  ldflags="$ldflags -X $MODULE/internal/version.Commit=$REF"
+  ldflags="$ldflags -X $MODULE/internal/version.BuildDate=$build_date"
+  (
+    cd "$srcdir"
+    go build -trimpath \
+      -ldflags "$ldflags" \
+      -o "$target_dir/$binary_name" \
+      ./cmd/agentwall
+  )
 }
 
 tag="${AGENTWALL_VERSION:-}"
@@ -65,9 +87,6 @@ fi
 version="${tag#v}"
 archive="agentwall_${version}_${os}_${arch}.${ext}"
 checksums="checksums.txt"
-
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
 
 base="https://github.com/$REPO/releases/download/$tag"
 curl -fsSL "$base/$archive" -o "$tmpdir/$archive"
