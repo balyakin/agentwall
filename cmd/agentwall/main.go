@@ -32,21 +32,23 @@ import (
 )
 
 type cliFlags struct {
-	configPath       string
-	mode             string
-	port             int
-	upstreamProxy    string
-	budget           string
-	responseSanitize string
-	failOnBlocked    bool
-	saveSession      string
-	replay           string
-	split            bool
-	noColor          bool
-	quiet            bool
-	json             bool
-	explain          bool
-	noSanitize       bool
+	configPath         string
+	mode               string
+	port               int
+	upstreamProxy      string
+	budget             string
+	responseSanitize   string
+	codexPassthrough   bool
+	noCodexPassthrough bool
+	failOnBlocked      bool
+	saveSession        string
+	replay             string
+	split              bool
+	noColor            bool
+	quiet              bool
+	json               bool
+	explain            bool
+	noSanitize         bool
 }
 
 type exitError struct {
@@ -83,6 +85,8 @@ func newRootCmd() *cobra.Command {
 	root.PersistentFlags().StringVar(&flags.upstreamProxy, "upstream-proxy", "", "optional upstream proxy URL")
 	root.PersistentFlags().StringVar(&flags.budget, "budget", "", "session budget (e.g. 5$, USD:5)")
 	root.PersistentFlags().StringVar(&flags.responseSanitize, "response-sanitize", "", "off|detect|sanitize|block")
+	root.PersistentFlags().BoolVar(&flags.codexPassthrough, "codex-passthrough", true, "compatibility mode for codex: passthrough chatgpt.com (disables body-level protection)")
+	root.PersistentFlags().BoolVar(&flags.noCodexPassthrough, "no-codex-passthrough", false, "disable codex passthrough and force body inspection (may be slower/unstable)")
 	root.PersistentFlags().BoolVar(&flags.failOnBlocked, "fail-on-blocked", false, "non-zero exit if anything was blocked")
 	root.PersistentFlags().StringVar(&flags.saveSession, "save-session", "", "save normalized session trace")
 	root.PersistentFlags().StringVar(&flags.replay, "replay", "", "replay session from file")
@@ -211,6 +215,10 @@ func runAgentWall(flags *cliFlags, childCmd []string) error {
 	if liveEventsMuted && !flags.quiet {
 		_, _ = fmt.Fprintln(os.Stderr, "  ▸ live events muted for interactive TUI; details are in summary/log")
 	}
+	passthroughHosts := passthroughHostsForCommand(childCmd, effectiveCodexPassthrough(flags))
+	if len(passthroughHosts) > 0 && !flags.quiet {
+		_, _ = fmt.Fprintln(os.Stderr, "  ▸ WARNING: codex passthrough enabled; chatgpt.com traffic is not body-inspected (use --no-codex-passthrough to disable)")
+	}
 
 	var recorder *replay.Recorder
 	if cfg.SaveSession != "" {
@@ -241,7 +249,7 @@ func runAgentWall(flags *cliFlags, childCmd []string) error {
 		Addr:             fmt.Sprintf("127.0.0.1:%d", cfg.Port),
 		Mode:             cfg.Mode,
 		UpstreamProxy:    cfg.UpstreamProxy,
-		PassthroughHosts: passthroughHostsForCommand(childCmd),
+		PassthroughHosts: passthroughHosts,
 		CACert:           caCert,
 		Engine:           engine,
 		Sanitizer:        sanitizer,
@@ -758,12 +766,22 @@ func likelyInteractiveCommand(command string) bool {
 	}
 }
 
-func passthroughHostsForCommand(childCmd []string) []string {
+func effectiveCodexPassthrough(flags *cliFlags) bool {
+	if flags == nil {
+		return true
+	}
+	if flags.noCodexPassthrough {
+		return false
+	}
+	return flags.codexPassthrough
+}
+
+func passthroughHostsForCommand(childCmd []string, codexPassthrough bool) []string {
 	if len(childCmd) == 0 {
 		return nil
 	}
 	base := strings.ToLower(filepath.Base(strings.TrimSpace(childCmd[0])))
-	if base == "codex" {
+	if codexPassthrough && base == "codex" {
 		return []string{"chatgpt.com", ".chatgpt.com"}
 	}
 	return nil

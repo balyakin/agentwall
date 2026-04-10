@@ -71,14 +71,32 @@ func TestLikelyInteractiveCommand(t *testing.T) {
 }
 
 func TestPassthroughHostsForCommand(t *testing.T) {
-	hosts := passthroughHostsForCommand([]string{"codex"})
+	hosts := passthroughHostsForCommand([]string{"codex"}, true)
 	if len(hosts) == 0 {
 		t.Fatalf("expected codex passthrough hosts")
 	}
 	if got, want := hosts[0], "chatgpt.com"; got != want {
 		t.Fatalf("unexpected first passthrough host: got %s want %s", got, want)
 	}
-	if hosts := passthroughHostsForCommand([]string{"claude"}); len(hosts) != 0 {
+	if hosts := passthroughHostsForCommand([]string{"codex"}, false); len(hosts) != 0 {
+		t.Fatalf("expected no codex passthrough hosts when disabled")
+	}
+	if hosts := passthroughHostsForCommand([]string{"claude"}, true); len(hosts) != 0 {
 		t.Fatalf("expected no passthrough hosts for claude")
+	}
+}
+
+func TestEffectiveCodexPassthrough(t *testing.T) {
+	if !effectiveCodexPassthrough(nil) {
+		t.Fatalf("expected nil flags to default to passthrough enabled")
+	}
+	if !effectiveCodexPassthrough(&cliFlags{codexPassthrough: true}) {
+		t.Fatalf("expected passthrough enabled when flag is true")
+	}
+	if effectiveCodexPassthrough(&cliFlags{codexPassthrough: true, noCodexPassthrough: true}) {
+		t.Fatalf("expected no-codex-passthrough to override")
+	}
+	if effectiveCodexPassthrough(&cliFlags{codexPassthrough: false}) {
+		t.Fatalf("expected explicit codex-passthrough=false to disable")
 	}
 }
