@@ -30,8 +30,6 @@ func (g *Guard) wrapStreaming(resp *http.Response) (*http.Response, Result) {
 		for {
 			chunk, err := reader.ReadBytes('\n')
 			if len(chunk) > 0 {
-				line := chunk
-				ids := []string(nil)
 				if g.mode == ModeBlock {
 					_, highIDs := g.sanitizer.RedactBytes(chunk, true)
 					if len(highIDs) > 0 {
@@ -45,7 +43,7 @@ func (g *Guard) wrapStreaming(resp *http.Response) (*http.Response, Result) {
 						return
 					}
 				}
-				line, ids = g.sanitizer.RedactBytes(chunk, false)
+				line, ids := g.sanitizer.RedactBytes(chunk, false)
 				for _, id := range ids {
 					if id != "" {
 						collected[id] = struct{}{}
