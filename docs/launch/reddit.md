@@ -16,7 +16,7 @@ Main features:
 Quick start:
 
 ```sh
-curl -fsSL https://agentwall.dev/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/balyakin/agentwall/main/scripts/install.sh | sh
 agentwall run -- claude
 ```
 

@@ -7,5 +7,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: curl -fsSL https://agentwall.dev/install.sh | sh
+      - run: curl -fsSL https://raw.githubusercontent.com/balyakin/agentwall/main/scripts/install.sh | sh
       - run: agentwall run --mode strict --fail-on-blocked --json -- claude --headless < task.txt

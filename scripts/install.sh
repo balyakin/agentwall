@@ -2,6 +2,7 @@
 set -eu
 
 REPO="${AGENTWALL_REPO:-balyakin/agentwall}"
+REF="${AGENTWALL_REF:-main}"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"
@@ -24,20 +25,44 @@ case "$os" in
     ;;
 esac
 
-api="https://api.github.com/repos/$REPO/releases/latest"
-tag="$(curl -fsSL "$api" | awk -F '"' '/tag_name/ {print $4; exit}')"
-if [ -z "$tag" ]; then
-  echo "Failed to detect latest release tag" >&2
-  exit 1
-fi
-
-version="${tag#v}"
 ext="tar.gz"
 binary_name="agentwall"
 if [ "$os" = "windows" ]; then
   ext="zip"
   binary_name="agentwall.exe"
 fi
+
+target_dir="$HOME/.local/bin"
+if [ -w "/usr/local/bin" ]; then
+  target_dir="/usr/local/bin"
+fi
+mkdir -p "$target_dir"
+
+install_from_source() {
+  if ! command -v go >/dev/null 2>&1; then
+    echo "No GitHub release found for $REPO and Go is not installed." >&2
+    echo "Install Go, then run: go install github.com/$REPO/cmd/agentwall@$REF" >&2
+    exit 1
+  fi
+  echo "No GitHub release found for $REPO. Building from source with Go..." >&2
+  GOBIN="$target_dir" go install "github.com/$REPO/cmd/agentwall@$REF"
+}
+
+tag="${AGENTWALL_VERSION:-}"
+if [ -z "$tag" ]; then
+  api="https://api.github.com/repos/$REPO/releases/latest"
+  tag="$(curl -fsSL "$api" 2>/dev/null | awk -F '"' '/tag_name/ {print $4; exit}')"
+fi
+
+if [ -z "$tag" ]; then
+  install_from_source
+  echo "Installed: $target_dir/$binary_name"
+  "$target_dir/$binary_name" doctor || true
+  echo "Try: agentwall run -- claude"
+  exit 0
+fi
+
+version="${tag#v}"
 archive="agentwall_${version}_${os}_${arch}.${ext}"
 checksums="checksums.txt"
 
@@ -74,11 +99,6 @@ else
   unzip -q "$tmpdir/$archive" -d "$tmpdir"
 fi
 
-target_dir="$HOME/.local/bin"
-if [ -w "/usr/local/bin" ]; then
-  target_dir="/usr/local/bin"
-fi
-mkdir -p "$target_dir"
 install "$tmpdir/$binary_name" "$target_dir/$binary_name"
 
 echo "Installed: $target_dir/$binary_name"
