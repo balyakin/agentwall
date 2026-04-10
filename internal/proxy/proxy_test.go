@@ -234,8 +234,8 @@ func TestShouldBypassRequestBodyInspection(t *testing.T) {
 		req.Body = staticReadCloser{Reader: strings.NewReader("chunk")}
 		req.ContentLength = -1
 		req.Header.Set("Content-Type", "application/json")
-		if !shouldBypassRequestBodyInspection(req) {
-			t.Fatalf("expected streaming request body inspection to be bypassed")
+		if shouldBypassRequestBodyInspection(req) {
+			t.Fatalf("expected unknown-size JSON request body to still be inspected")
 		}
 	})
 

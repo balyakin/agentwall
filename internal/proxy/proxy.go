@@ -638,9 +638,6 @@ func shouldBypassRequestBodyInspection(req *http.Request) bool {
 	if strings.Contains(contentType, "text/event-stream") {
 		return true
 	}
-	if req.ContentLength < 0 {
-		return true
-	}
 	return false
 }
 
